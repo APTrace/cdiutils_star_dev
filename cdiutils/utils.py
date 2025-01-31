@@ -461,7 +461,8 @@ def crop_at_center(
 
 def compute_distance_from_com(
         data: np.ndarray,
-        com: tuple or list or np.ndarray = None
+        # com: tuple or list or np.ndarray = None
+        com: tuple | list | np.ndarray = None ### APTrace modification ###
 ) -> np.ndarray:
     """
     Return a np.ndarray of the same shape of the provided data.

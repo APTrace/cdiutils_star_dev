@@ -116,6 +116,7 @@ class BcdiPipeline(Pipeline):
         self.cropped_detector_data: np.ndarray = None
         self.mask: np.ndarray = None
         self.angles: dict = None
+        # self.fluxes: dict = None ### APTrace addition ###
         self.converter: SpaceConverter = None
         self.result_analyser: PhasingResultAnalyser = None
         self.reconstruction: np.ndarray = None
@@ -212,6 +213,7 @@ class BcdiPipeline(Pipeline):
             ValueError: if the requested shape and the voxel reference
                 are not compatible.
         """
+        print("Test Print PEAR")
         if params:
             self.logger.info(
                 "Additional parameters provided, will update the current "
@@ -236,6 +238,16 @@ class BcdiPipeline(Pipeline):
             self.cropped_detector_data = self._filter(
                 self.cropped_detector_data
             )
+            # ################################
+            # """ APTrace addition - START """
+            # ################################
+            # if self.params["incident_flux_normalisation"]:
+            #     self.cropped_detector_data = self._normalise_by_flux(
+            #         self.cropped_detector_data
+            #     )
+            # ##############################
+            # """ APTrace addition - END """
+            # ##############################
 
         else:
             self._load()
@@ -249,6 +261,17 @@ class BcdiPipeline(Pipeline):
             self.cropped_detector_data, roi = self._crop_centre(
                 self._filter(self.detector_data)
             )
+            # ################################
+            # """ APTrace addition - START """
+            # ################################
+            # if self.params["incident_flux_normalisation"]:
+            #     self.cropped_detector_data = self._normalise_by_flux(
+            #         self.cropped_detector_data
+            #     )
+            # ##############################
+            # """ APTrace addition - END """
+            # ##############################
+
         for r in roi:
             if r < 0:
                 raise ValueError(
@@ -436,7 +459,7 @@ class BcdiPipeline(Pipeline):
 
     def _load(self, roi: tuple[slice] = None) -> None:
         """
-        Load the raw detector data and motor positions.
+        Load the raw detector data, motor positions, and incident flux from monitors.
 
         Args:
             roi (tuple[slice], optional): the region of interest on the
@@ -447,11 +470,13 @@ class BcdiPipeline(Pipeline):
                 mask have been correctly loaded.
         """
         # Make the loader using the factory method, only parse the
-        # parameters relevant to the Loader class, to make them explicit.
+        # parameters relevant to t_loadhe Loader class, to make them explicit.
+
         loader_keys = (
             "beamline_setup", "scan", "sample_name", "experiment_file_path",
             "experiment_data_dir_path", "detector_data_path",
-            "edf_file_template", "detector_name", "alien_mask", "flat_field",
+            "edf_file_template", "detector_name", "alien_mask", "flat_field", 
+            
         )
         loader = Loader.from_setup(**{k: self.params[k] for k in loader_keys})
 
@@ -481,6 +506,43 @@ class BcdiPipeline(Pipeline):
             roi=roi,
             rocking_angle_binning=self.params["rocking_angle_binning"]
         )
+
+        ################################
+        """ APTrace addition - START """
+        ################################
+
+        if self.params.get("flux_monitoring_counter") is not None:
+            try:
+                fluxes = loader.load_incident_flux(
+                    flux_monitoring_counter=self.params["flux_monitoring_counter"]
+                )
+                print(f"Loaded flux_monitoring_counter:")
+                print(f"fluxes has a shape of {np.shape(fluxes)} and a type of {type(fluxes)}")
+                try:
+                    x = np.arange(len(fluxes))  
+                    y = fluxes  
+                    slope, intercept = np.polyfit(x, y, 1)
+                    if slope > 0:
+                        print(f"Flux data has a positive (increasing) slope of {slope}")
+                    elif slope < 0:
+                        print(f"Flux data has a negative (decreasing) slope of {slope}")
+                    else:
+                        print(f"Flux data has a flat slope of {slope}")
+                except ValueError:
+                    print(f"Error with flux linear fit: {e}")
+                print(fluxes)
+            except Exception as e: 
+                print(f"Could not load flux_monitoring_counter.")
+            try:
+                # Ensure operation is correct
+                self.detector_data = np.divide(self.detector_data,fluxes.reshape(len(fluxes),1,1))*(np.sum(fluxes)/len(fluxes))
+                print(f"Normalised detector data by incident flux!")
+            except ValueError:
+                print(f"Could not normalise detector data by incident flux.")
+        ##############################
+        """ APTrace addition - END """
+        ##############################
+
         self.mask = loader.get_mask(
             channel=self.detector_data.shape[0],
             detector_name=self.params["detector_name"],
@@ -652,6 +714,20 @@ class BcdiPipeline(Pipeline):
             data -= self.params["background_level"]
             data[data < 0] = 0
         return data
+    
+    # ################################
+    # """ APTrace addition - START """
+    # ################################
+    # def _normalise_by_flux(self, data: np.ndarray) -> np.ndarray:
+    #     print("")
+    #     print("_normalise_by_flux from `cdiutils.pipeline.bcdi`")
+    #     print("")
+    #     print("self.fluxes", self.fluxes)
+    #     print("")
+    #     return data
+    # ##############################
+    # """ APTrace addition - END """
+    # ##############################
 
     def _crop_centre(self, detector_data) -> tuple[np.ndarray, list]:
         """

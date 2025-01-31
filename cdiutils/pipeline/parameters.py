@@ -17,6 +17,7 @@ AUTHORIZED_KEYS = {
     "detector_name": None,
     "flat_field": None,
     "alien_mask": None,
+    "flux_monitoring_counter": None, ### APTrace addition ###
 
     "background_level": None,
     "preprocess_shape": (150, 150),

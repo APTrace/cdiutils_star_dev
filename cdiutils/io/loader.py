@@ -531,3 +531,19 @@ class H5TypeLoader(Loader):
                 angles[name] = self.h5file[key_path + name][()]
 
         return angles
+    
+    ################################
+    """ APTrace addition - START """
+    ################################
+    
+    # @h5_safe_load
+    # def load_fluxes(self, key_path: str) -> dict:
+    #     fluxes = {}
+    #     for name in self.flux_names.values():
+    #         if name is not None:
+    #             fluxes[name] = self.h5file[key_path + name][()]
+    #     return fluxes
+
+    ##############################
+    """ APTrace addition - END """
+    ##############################

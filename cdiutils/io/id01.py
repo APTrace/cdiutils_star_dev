@@ -23,6 +23,19 @@ class ID01Loader(H5TypeLoader):
     }
     authorised_detector_names = ("mpxgaas", "mpx1x4", "eiger2M")
 
+    ################################
+    """ APTrace addition - START """
+    ################################
+    flux_names = {
+        "mon1": "mon1",
+        "mon2": "mon2",
+        "exp1": "exp1",
+        "exp2": "exp2"
+    }
+    ##############################
+    """ APTrace addition - END """
+    ##############################
+
     def __init__(
             self,
             experiment_file_path: str,
@@ -249,6 +262,84 @@ class ID01Loader(H5TypeLoader):
         ] = formatted_angles[self.rocking_angle][roi]
 
         return formatted_angles
+    
+    ################################
+    """ APTrace addition - START """
+    ################################
+    """WORK IN PROGRESS"""
+    @h5_safe_load
+    def load_incident_flux(
+            self,
+            flux_monitoring_counter,
+            scan: int = None,
+            sample_name: str = None,
+            roi: tuple[slice] = None,
+            rocking_angle_binning: int = None,
+    ) -> dict:
+        """
+        Load the incident flux data, i.e the flux values as reported 
+        by the monitors mon1, mon2, exp1, exp2.
+
+        Args:
+            scan (int, optional): the scan number. Defaults to None.
+            sample_name (str, optional): the sample name.
+                Defaults to None.
+            roi (tuple[slice], optional): the region of interest.
+                Defaults to None.
+            rocking_angle_binning (int, optional): the factor for the
+                binning along the rocking curve axis. Defaults to None.
+
+        Returns:
+            dict: the four flux monitor values.
+        """
+        scan, sample_name = self._check_scan_sample(scan, sample_name)
+        # fluxes = self.load_fluxes(
+        #     key_path=f"{sample_name}_{scan}.1/measurement/"
+        # )
+
+        # formatted_fluxes = {
+        #     key: fluxes[name] if fluxes.get(name) is not None else 0.
+        #     for key, name in ID01Loader.flux_names.items()
+        # }
+
+        key_path=f"{sample_name}_{scan}.1/measurement/{flux_monitoring_counter}"
+        try:
+            print(f"key_path: {key_path}")
+            formatted_fluxes = self.h5file[key_path][()]
+            print(f"Loaded flux monitor counter {flux_monitoring_counter}")
+        except ValueError: 
+            print(
+                f"The flux monitor counter name {flux_monitoring_counter} could not be found."
+            )
+
+        # try:
+        #     self.rocking_angle = self.get_rocking_angle(formatted_fluxes)
+        # except ValueError:
+        #     print(
+        #         "No rocking angle found. Will return the raw fluxes with no "
+        #         "binning nor cropping."
+        #     )
+        #     return formatted_fluxes
+        
+        # if rocking_angle_binning:
+        #     formatted_fluxes[
+        #         self.rocking_angle
+        #     ] = self.bin_rocking_angle_values(
+        #         formatted_fluxes[self.rocking_angle], rocking_angle_binning
+        #     )
+        # # take care of the roi
+        # roi = self._check_roi(roi)
+        # roi = roi[0]
+
+        # formatted_fluxes[
+        #     self.rocking_angle
+        # ] = formatted_fluxes[self.rocking_angle][roi]
+
+        return formatted_fluxes
+
+    ##############################
+    """ APTrace addition - END """
+    ##############################
 
     @h5_safe_load
     def load_energy(
@@ -367,6 +458,18 @@ class SpecLoader(Loader):
         "detector_outofplane_angle": "del",
         "detector_inplane_angle": "nu"
     }
+    ################################
+    """ APTrace addition - START """
+    ################################
+    flux_names = {
+        "mon1": "mon1",
+        "mon2": "mon2",
+        "exp1": "exp1",
+        "exp2": "exp2"
+    }
+    ##############################
+    """ APTrace addition - END """
+    ##############################
 
     def __init__(
             self,
@@ -468,6 +571,43 @@ class SpecLoader(Loader):
         if roi and rocking_angle_binning:
             angles[self.rocking_angle] = angles[self.rocking_angle][roi]
         return angles
+    
+    ################################
+    """ APTrace addition - START """
+    ################################
+
+    @safe
+    def load_incident_flux(
+        self,
+        scan: int = None,
+        roi: tuple[slice] = None,
+        rocking_angle_binning: int = None,
+    ):
+        scan, _ = self._check_scan_sample(scan, None)
+        roi = self._check_roi(roi)
+        roi = roi[0]
+
+        monitors = self.specfile[f"{scan}.1/measurement"]
+
+        fluxes = {key: None for key in SpecLoader.angle_names.keys()}
+        for flux, name in SpecLoader.flux_names.items():
+            try:
+                fluxes[flux] = monitors[name][roi]
+            except ValueError:
+                fluxes[flux] = fluxes[flux] = monitors[name][()]
+        
+        self.rocking_angle = self.get_rocking_angle(fluxes)
+        
+        fluxes[self.rocking_angle] = self.bin_rocking_angle_values(
+            fluxes[self.rocking_angle], rocking_angle_binning
+        )
+        if roi and rocking_angle_binning:
+            fluxes[self.rocking_angle] = fluxes[self.rocking_angle][roi]
+        return fluxes
+    
+    ##############################
+    """ APTrace addition - END """
+    ##############################
 
     def load_det_calib_params(self) -> dict:
         return None

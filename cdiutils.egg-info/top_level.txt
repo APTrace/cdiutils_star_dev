@@ -1,0 +1,2 @@
+cdiutils
+scripts
