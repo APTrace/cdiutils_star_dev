@@ -951,8 +951,8 @@ class PhasingResultAnalyser:
                 "Phasing result analysis (the lower the better)\n"
             )
         print(
-            "[INFO] the sorted list of runs using sorting_criterion "
-            f"'{sorting_criterion}' is:\n{runs}"
+            f"[INFO] the sorted list of runs using '{sorting_criterion}' "
+            f"sorting_criterion is:\n{runs}."
         )
 
         if plot_phasing_results and plot:
@@ -1175,7 +1175,7 @@ class PhasingResultAnalyser:
             figure.colorbar(rcp_im, ax=axes[0, 2], extend="both")
             figure.colorbar(direct_space_im, ax=axes[1, 2], extend="both")
 
-            axes[0, 1].set_title("Intensity sum (a.u.)")
+            axes[0, 1].set_title("Intensity projection (a.u.)")
             axes[1, 1].set_title(
                 "Phase (rad)" if plot_phase else "Amplitude (a.u.)"
             )
