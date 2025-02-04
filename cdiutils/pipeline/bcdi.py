@@ -213,7 +213,7 @@ class BcdiPipeline(Pipeline):
             ValueError: if the requested shape and the voxel reference
                 are not compatible.
         """
-        print("Test Print PEAR")
+        print("Test Print CANADA")
         if params:
             self.logger.info(
                 "Additional parameters provided, will update the current "
@@ -452,6 +452,10 @@ class BcdiPipeline(Pipeline):
 
     def _from_2d_to_3d_shape(self) -> tuple:
         if len(self.params["preprocess_shape"]) == 2:
+            print("(self.detector_data.shape[0], ): ", (self.detector_data.shape[0], ) )
+            print("(self.detector_data.shape[0], ) type is: ", type((self.detector_data.shape[0], )))
+            print("self.params[\"preprocess_shape\"]: ", self.params["preprocess_shape"])
+            print("self.params[\"preprocess_shape\"] type is: ", type(self.params["preprocess_shape"]))
             self.params["preprocess_shape"] = (
                 (self.detector_data.shape[0], )
                 + self.params["preprocess_shape"]
