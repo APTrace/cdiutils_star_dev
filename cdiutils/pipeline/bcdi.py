@@ -458,7 +458,7 @@ class BcdiPipeline(Pipeline):
             print("self.params[\"preprocess_shape\"] type is: ", type(self.params["preprocess_shape"]))
             self.params["preprocess_shape"] = (
                 (self.detector_data.shape[0], )
-                + self.params["preprocess_shape"]
+                + tuple(self.params["preprocess_shape"])
             )
 
     def _load(self, roi: tuple[slice] = None) -> None:
